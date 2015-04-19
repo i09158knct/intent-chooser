@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Intent Chooser</string>
 
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="action__settings">Settings</string>
+    <string name="main__load_icon">Load Icon</string>
+    <string name="main__refresh_list">Refresh</string>
+    <string name="main__disable_app_filter">Disable App filter</string>
+    <string name="app_info__hide">Hide</string>
 </resources>
