@@ -6,4 +6,8 @@
     <string name="main__refresh_list">Refresh</string>
     <string name="main__toggle_app_filter">Toggle App filter</string>
     <string name="app_info__hide">Hide</string>
+    <string name="test">Test</string>
+    <string name="open_details">Open Installed App Details</string>
+    <string name="reset_preferred_intent_chooser_setting">Reset preferred intent chooser setting</string>
+    <string name="open_system_details_to_reset_preferred_intent_chooser_setting">Open system details to reset preferred intent chooser setting</string>
 </resources>
