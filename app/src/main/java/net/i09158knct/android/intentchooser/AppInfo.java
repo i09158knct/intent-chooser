@@ -9,7 +9,10 @@ import java.util.List;
 
 public class AppInfo {
 
-    public static List<AppInfo> convertFromResolveInfoList(PackageManager pm, List<ResolveInfo> apps) {
+    private static final String SEPARATOR_ROW = "\n";
+    private static final String SEPARATOR_COL = "\t";
+
+    public static List<AppInfo> createList(PackageManager pm, List<ResolveInfo> apps) {
         ArrayList<AppInfo> appInfoList = new ArrayList<>(apps.size());
         for (ResolveInfo app : apps) {
             ActivityInfo info = app.activityInfo;
@@ -18,6 +21,36 @@ public class AppInfo {
         }
         return appInfoList;
     }
+
+    public static AppInfo deserialize(String appInfoString) {
+        String[] appInfo = appInfoString.split(SEPARATOR_COL);
+        return new AppInfo(
+                appInfo[0],
+                appInfo[1],
+                appInfo[2]
+        );
+    }
+
+    public static List<AppInfo> deserializeList(String appInfoListString) {
+        String[] appInfoStringList = appInfoListString.split(SEPARATOR_ROW);
+        ArrayList<AppInfo> appInfoList = new ArrayList<>();
+        for (int i = 0; i < appInfoStringList.length - 1; i++) {
+            String appInfoString = appInfoStringList[i];
+            AppInfo app = deserialize(appInfoString);
+            appInfoList.add(app);
+        }
+        return appInfoList;
+    }
+
+    public static String serializeList(List<AppInfo> apps) {
+        StringBuilder builder = new StringBuilder();
+        for (AppInfo app : apps) {
+            String s = app.serialize();
+            builder.append(s).append(SEPARATOR_ROW);
+        }
+        return builder.toString();
+    }
+
 
     public String packageName;
     public String className;
@@ -36,4 +69,9 @@ public class AppInfo {
     public String getKey() {
         return packageName + className;
     }
+
+    public String serialize() {
+        return packageName + SEPARATOR_COL + className + SEPARATOR_COL + label;
+    }
+
 }

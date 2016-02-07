@@ -13,7 +13,7 @@ import android.widget.ListView;
 import java.util.List;
 
 
-public class MainActivity extends ListActivity {
+public class ChooserActivity extends ListActivity {
 
     private List<AppInfo> mAppInfoList;
     private AppInfoListAdapter mAdapter;
@@ -21,23 +21,28 @@ public class MainActivity extends ListActivity {
     private Intent mIntent;
     private boolean mFilterIsEnable = true;
     private boolean mIconVisibility = false;
-    private boolean mForceQuerying = false;
+    private boolean mAlwaysLoadFromPackageManager = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_chooser);
 
+        // ユーザーによるアプリ選択後に送信するために
+        // 受け取ったインテントをフィールドに格納する。
         Intent chooserIntent = getIntent();
         mIntent = chooserIntent.getParcelableExtra(Intent.EXTRA_INTENT);
 
+        // インテントにタイトルが含まれていればそれを表示する。
         CharSequence title = chooserIntent.getCharSequenceExtra(Intent.EXTRA_TITLE);
         if (title != null) {
             setTitle(title);
         }
 
+        // アプリマネージャーを作成し候補アプリリストを作成する。
         mManager = new AppInfoListManager(getApplicationContext());
-        updateList(mFilterIsEnable, mForceQuerying, mIconVisibility);
+        updateList(mFilterIsEnable, mAlwaysLoadFromPackageManager, mIconVisibility);
+
         registerForContextMenu(getListView());
     }
 
@@ -51,8 +56,9 @@ public class MainActivity extends ListActivity {
         int position = ((AdapterView.AdapterContextMenuInfo) item.getMenuInfo()).position;
         switch (item.getItemId()) {
             case R.id.context_app_info__hide:
+                // 非表示アプリリストに追加し、リストを更新する。
                 mManager.addHiddenApp(mIntent, mAppInfoList.get(position));
-                updateList(mFilterIsEnable, mForceQuerying, mIconVisibility);
+                updateList(mFilterIsEnable, mAlwaysLoadFromPackageManager, mIconVisibility);
                 return true;
 
             default:
@@ -62,26 +68,30 @@ public class MainActivity extends ListActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.options_main, menu);
+        getMenuInflater().inflate(R.menu.options_chooser, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            // アプリアイコンを表示する。
             case R.id.menu_item_load_icon:
                 mIconVisibility = true;
                 mAdapter.setIconVisibility(mIconVisibility);
                 mAdapter.notifyDataSetChanged();
                 return true;
 
+            // アプリリストを再読込する。
+            // 内部的には、キャッシュからではなく強制的にシステムからアプリリストを取得し直している。
             case R.id.menu_item_refresh_list:
                 updateList(mFilterIsEnable, true, mIconVisibility);
                 return true;
 
-            case R.id.menu_item_disable_app_filter:
+            // 非表示アプリの表示非表示をトグルする。
+            case R.id.menu_item_toggle_app_filter:
                 mFilterIsEnable = !mFilterIsEnable;
-                updateList(mFilterIsEnable, mForceQuerying, mIconVisibility);
+                updateList(mFilterIsEnable, mAlwaysLoadFromPackageManager, mIconVisibility);
                 return true;
 
             default:

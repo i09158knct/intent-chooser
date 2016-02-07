@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,68 +14,40 @@ public class AppInfoListManager {
 
     private static final String PREFERENCE_NAME_HIDDEN_APP_LIST = "hidden_app_list";
     private static final String PREFERENCE_NAME_APP_LIST = "app_list";
-    private static final String LINE_BREAK = "\n";
-    private static final String SEPARATOR = "\t";
-
-    private static AppInfo deserializeAppInfo(String appInfoString) {
-        String[] appInfo = appInfoString.split(SEPARATOR);
-        return new AppInfo(
-                appInfo[0],
-                appInfo[1],
-                appInfo[2]
-        );
-    }
-
-    private static List<AppInfo> parseAppInfoListString(String appInfoListString) {
-        String[] appInfoStringList = appInfoListString.split(LINE_BREAK);
-        ArrayList<AppInfo> appInfoList = new ArrayList<>();
-        for (int i = 0; i < appInfoStringList.length - 1; i++) {
-            String appInfoString = appInfoStringList[i];
-            appInfoList.add(deserializeAppInfo(appInfoString));
-        }
-        return appInfoList;
-    }
-
-    private static String serializeAppInfo(AppInfo app) {
-        return app.packageName + SEPARATOR + app.className + SEPARATOR + app.label;
-    }
-
-    private static String convertAppInfoListToString(List<AppInfo> apps) {
-        StringBuilder builder = new StringBuilder();
-        for (AppInfo app : apps) {
-            builder.append(serializeAppInfo(app)).append(LINE_BREAK);
-        }
-        return builder.toString();
-    }
+    private static final String SEPARATOR_ROW = "\n";
 
     private static String extractPreferenceKey(Intent intent) {
-        return intent.getAction() + intent.getScheme() + intent.getType();
+        // TODO WebからPDFを開くときにPDFリーダーが候補に出ないことがあるので要調査。
+        String action = intent.getAction();
+        String scheme = intent.getScheme();
+        String type = intent.getType();
+        return action + scheme + type;
     }
 
 
-    private final Context mContext;
+    private final PackageManager mPackageManager;
     private final SharedPreferences mAppListPreference;
     private final SharedPreferences mHiddenListPreference;
 
     public AppInfoListManager(Context context) {
-        mContext = context;
+        mPackageManager = context.getPackageManager();
         mAppListPreference = context.getSharedPreferences(PREFERENCE_NAME_APP_LIST, 0);
         mHiddenListPreference = context.getSharedPreferences(PREFERENCE_NAME_HIDDEN_APP_LIST, 0);
     }
 
-    public List<AppInfo> getAppInfoList(Intent intent, boolean filterIsEnable, boolean forceQuerying) {
+    public List<AppInfo> getAppInfoList(Intent intent, boolean enableFilter, boolean loadFromPackageManagerAnyway) {
         String key = extractPreferenceKey(intent);
         List<AppInfo> appInfoList;
-        if (mAppListPreference.contains(key) && !forceQuerying) {
-            appInfoList = loadAppInfoList(key);
+        if (mAppListPreference.contains(key) && !loadFromPackageManagerAnyway) {
+            appInfoList = load(key);
         } else {
-            appInfoList = queryAppInfoList(intent);
-            saveAppInfoList(key, appInfoList);
+            appInfoList = loadFromPackageManager(intent);
+            save(key, appInfoList);
         }
 
-        if (filterIsEnable) {
+        if (enableFilter) {
             List<String> hiddenAppList = loadHiddenList(key);
-            return filterAppList(key, appInfoList, hiddenAppList);
+            return filter(key, appInfoList, hiddenAppList);
         } else {
             return appInfoList;
         }
@@ -93,7 +64,7 @@ public class AppInfoListManager {
         saveHiddenList(key, hiddenAppList);
     }
 
-    private List<AppInfo> filterAppList(String key, List<AppInfo> appInfoList, List<String> hiddenAppList) {
+    private List<AppInfo> filter(String key, List<AppInfo> appInfoList, List<String> hiddenAppList) {
         List<AppInfo> filteredAppList = new ArrayList<>(appInfoList.size());
         for (int i = 0; i < appInfoList.size(); i++) {
             AppInfo appInfo = appInfoList.get(i);
@@ -105,13 +76,15 @@ public class AppInfoListManager {
     }
 
     private List<String> loadHiddenList(String key) {
-        return new ArrayList<>(Arrays.asList(mHiddenListPreference.getString(key, "").split(LINE_BREAK)));
+        String textHidden = mHiddenListPreference.getString(key, "");
+        String[] hidden = textHidden.split(SEPARATOR_ROW);
+        return new ArrayList<>(Arrays.asList(hidden));
     }
 
     private void saveHiddenList(String key, List<String> hiddenList) {
         StringBuilder builder = new StringBuilder();
         for (String hiddenAppKey : hiddenList) {
-            builder.append(hiddenAppKey).append(LINE_BREAK);
+            builder.append(hiddenAppKey).append(SEPARATOR_ROW);
         }
 
         mHiddenListPreference.edit()
@@ -119,19 +92,20 @@ public class AppInfoListManager {
                 .apply();
     }
 
-    private List<AppInfo> queryAppInfoList(Intent intent) {
-        PackageManager pm = mContext.getPackageManager();
-        List<ResolveInfo> resolveInfos = mContext.getPackageManager().queryIntentActivities(intent, 0);
-        return AppInfo.convertFromResolveInfoList(pm, resolveInfos);
+    private List<AppInfo> loadFromPackageManager(Intent intent) {
+        List<ResolveInfo> resolveInfos = mPackageManager.queryIntentActivities(intent, 0);
+        return AppInfo.createList(mPackageManager, resolveInfos);
     }
 
-    private List<AppInfo> loadAppInfoList(String key) {
-        return parseAppInfoListString(mAppListPreference.getString(key, ""));
+    private List<AppInfo> load(String key) {
+        String textApps = mAppListPreference.getString(key, "");
+        return AppInfo.deserializeList(textApps);
     }
 
-    private void saveAppInfoList(String key, List<AppInfo> appInfoList) {
+    private void save(String key, List<AppInfo> appInfoList) {
+        String text = AppInfo.serializeList(appInfoList);
         mAppListPreference.edit()
-                .putString(key, convertAppInfoListToString(appInfoList))
+                .putString(key, text)
                 .apply();
     }
 }
