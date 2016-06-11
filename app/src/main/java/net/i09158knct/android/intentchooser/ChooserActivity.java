@@ -103,8 +103,26 @@ public class ChooserActivity extends ListActivity {
     protected void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
         AppInfo appInfo = mAppInfoList.get(position);
-        startActivity(mIntent.setClassName(appInfo.packageName, appInfo.className));
-        finish();
+        Intent intent = mIntent.setClassName(appInfo.packageName, appInfo.className);
+
+        if (mIntent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
+            startActivityForResult(intent, 1);
+        }
+        else {
+            startActivity(intent);
+            finish();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 1) {
+            setResult(resultCode, data);
+            finish();
+            return;
+        }
+
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void updateList(boolean filterIsEnable, boolean forceQuerying, boolean iconVisibility) {
