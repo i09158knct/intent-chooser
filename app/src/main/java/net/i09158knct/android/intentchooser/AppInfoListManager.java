@@ -16,6 +16,9 @@ public class AppInfoListManager {
     private static final String PREFERENCE_NAME_APP_LIST = "app_list";
     private static final String SEPARATOR_ROW = "\n";
 
+    // PackageManager.MATCH_ALLはAPI Levelが23以上でないと使えないので自前で定義しておく。
+    private static final int MATCH_ALL = 131072;
+
     private static String extractPreferenceKey(Intent intent) {
         // TODO WebからPDFを開くときにPDFリーダーが候補に出ないことがあるので要調査。
         String action = intent.getAction();
@@ -93,7 +96,7 @@ public class AppInfoListManager {
     }
 
     private List<AppInfo> loadFromPackageManager(Intent intent) {
-        List<ResolveInfo> resolveInfos = mPackageManager.queryIntentActivities(intent, 0);
+        List<ResolveInfo> resolveInfos = mPackageManager.queryIntentActivities(intent, MATCH_ALL);
         return AppInfo.createList(mPackageManager, resolveInfos);
     }
 
